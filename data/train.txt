@@ -1,0 +1,20 @@
+Artificial intelligence is a field of computer science.
+Machine learning allows computers to learn patterns from data.
+Deep learning uses neural networks to learn complex representations.
+A neural network contains layers of interconnected neurons.
+Transformers use attention mechanisms to process sequences.
+Self attention allows a model to relate different tokens to each other.
+Language models learn by predicting the next token.
+Large language models are trained on large collections of text.
+Training a neural network requires data and optimization.
+Gradient descent updates the parameters of a neural network.
+The model produces logits for every possible token.
+Cross entropy measures the difference between predicted probabilities and target tokens.
+The optimizer updates the model parameters using gradients.
+More training allows the model to improve its predictions.
+Artificial intelligence combines algorithms, data, and computation.
+Machine learning is used for classification and regression.
+Deep learning is particularly useful for complex patterns.
+Transformers became important because attention allows efficient sequence processing.
+A language model receives tokens as input and predicts future tokens.
+The quality of training data affects the quality of the model.
