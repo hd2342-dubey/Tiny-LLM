@@ -11,12 +11,29 @@ device = torch.device(
     "mps" if torch.backends.mps.is_available() else "cpu"
 )
 
+print("Device:", device)
+
 
 # ==========================================
-# Model configuration
+# Load tokenizer
 # ==========================================
 
-vocab_size = 116
+tokenizer_data = torch.load(
+    "checkpoints/tokenizer.pt",
+    map_location="cpu"
+)
+
+stoi = tokenizer_data["stoi"]
+itos = tokenizer_data["itos"]
+
+vocab_size = len(stoi)
+
+print("Tokenizer vocabulary size:", vocab_size)
+
+
+# ==========================================
+# Create model
+# ==========================================
 
 model = TinyLLM(
     vocab_size=vocab_size,
@@ -43,4 +60,10 @@ model.load_state_dict(state_dict)
 
 model.eval()
 
+
+# ==========================================
+# Verification
+# ==========================================
+
+print("Model vocabulary size:", model.lm_head.out_features)
 print("Model checkpoint loaded successfully.")

@@ -1,0 +1,35 @@
+User: What is artificial intelligence?
+Assistant: Artificial intelligence is the field of building computer systems that can perform tasks that normally require human intelligence.
+
+User: What is machine learning?
+Assistant: Machine learning is a method where computers learn patterns from data and use those patterns to make predictions or decisions.
+
+User: What is deep learning?
+Assistant: Deep learning is a type of machine learning that uses neural networks with multiple layers to learn complex patterns from data.
+
+User: What is a neural network?
+Assistant: A neural network is a machine learning model made of connected computational units called neurons that learn patterns from data.
+
+User: What is a transformer?
+Assistant: A transformer is a neural network architecture that uses attention mechanisms to process relationships between tokens in a sequence.
+
+User: What is self attention?
+Assistant: Self attention allows each token to determine which other tokens in the same sequence are important for understanding its meaning.
+
+User: What is a vector database?
+Assistant: A vector database stores numerical vector representations of data and allows efficient similarity search between vectors.
+
+User: What is RAG?
+Assistant: Retrieval augmented generation is a technique that retrieves relevant information from an external knowledge source and provides it to a language model to generate an answer.
+
+User: What is an embedding?
+Assistant: An embedding is a numerical vector representation of an object such as text that captures useful semantic information.
+
+User: What is gradient descent?
+Assistant: Gradient descent is an optimization algorithm that updates model parameters in a direction that reduces the training loss.
+
+User: What is overfitting?
+Assistant: Overfitting happens when a model learns the training data too closely and performs poorly on new unseen data.
+
+User: What is classification?
+Assistant: Classification is a machine learning task where a model assigns an input to one or more predefined categories.

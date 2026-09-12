@@ -1,6 +1,5 @@
 class SimpleTokenizer:
     def __init__(self, text):
-        # Build vocabulary from unique words
         words = sorted(set(text.split()))
 
         self.stoi = {
@@ -12,7 +11,10 @@ class SimpleTokenizer:
             if word not in self.stoi:
                 self.stoi[word] = len(self.stoi)
 
-        self.itos = {i: word for word, i in self.stoi.items()}
+        self.itos = {
+            i: word
+            for word, i in self.stoi.items()
+        }
 
     def encode(self, text):
         return [

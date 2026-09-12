@@ -3,7 +3,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from src.tokenizer.tokenizer import SimpleTokenizer
-from src.dataset import LanguageModelDataset
+from src.instruction_dataset import InstructionDataset
+from src.sft_collate import sft_collate_fn
 from src.tiny_llm import TinyLLM
 
 
@@ -19,23 +20,18 @@ print("Device:", device)
 
 
 # ==========================================
-# Load datasets
+# Load tokenizer
 # ==========================================
 
-with open("data/train.txt", "r", encoding="utf-8") as f:
-    pretraining_text = f.read()
+tokenizer_data = torch.load(
+    "checkpoints/tokenizer.pt",
+    map_location="cpu"
+)
 
-with open("data/instructions.txt", "r", encoding="utf-8") as f:
-    instruction_text = f.read()
+tokenizer = SimpleTokenizer.__new__(SimpleTokenizer)
 
-
-# ==========================================
-# Build FINAL shared vocabulary
-# ==========================================
-
-combined_text = pretraining_text + "\n" + instruction_text
-
-tokenizer = SimpleTokenizer(combined_text)
+tokenizer.stoi = tokenizer_data["stoi"]
+tokenizer.itos = tokenizer_data["itos"]
 
 vocab_size = len(tokenizer.stoi)
 
@@ -43,38 +39,47 @@ print("Vocabulary size:", vocab_size)
 
 
 # ==========================================
-# Tokenize ONLY pretraining data
+# Load instruction data
 # ==========================================
 
-token_ids = tokenizer.encode(pretraining_text)
+with open(
+    "data/instructions.txt",
+    "r",
+    encoding="utf-8"
+) as f:
+    text = f.read()
 
-print("Total pretraining tokens:", len(token_ids))
+
+examples = [
+    example.strip()
+    for example in text.split("\n\n")
+    if example.strip()
+]
+
+print("Number of instruction examples:", len(examples))
 
 
 # ==========================================
-# Create dataset
+# Create SFT dataset
 # ==========================================
 
-sequence_length = 32
-
-dataset = LanguageModelDataset(
-    token_ids=token_ids,
-    sequence_length=sequence_length
+dataset = InstructionDataset(
+    examples=examples,
+    tokenizer=tokenizer
 )
 
-print("Dataset size:", len(dataset))
+print("SFT dataset size:", len(dataset))
 
 
 # ==========================================
-# DataLoader
+# Create DataLoader
 # ==========================================
-
-batch_size = 4
 
 dataloader = DataLoader(
     dataset,
-    batch_size=batch_size,
-    shuffle=True
+    batch_size=4,
+    shuffle=True,
+    collate_fn=sft_collate_fn
 )
 
 
@@ -93,12 +98,28 @@ model = TinyLLM(
 
 
 # ==========================================
+# Load pretrained model
+# ==========================================
+
+checkpoint_path = "checkpoints/tiny_llm_pretrained.pt"
+
+state_dict = torch.load(
+    checkpoint_path,
+    map_location=device
+)
+
+model.load_state_dict(state_dict)
+
+print("Pretrained checkpoint loaded.")
+
+
+# ==========================================
 # Optimizer
 # ==========================================
 
 optimizer = torch.optim.AdamW(
     model.parameters(),
-    lr=3e-4
+    lr=1e-4
 )
 
 
@@ -106,9 +127,11 @@ optimizer = torch.optim.AdamW(
 # Training
 # ==========================================
 
-epochs = 20
+epochs = 100
 
 for epoch in range(epochs):
+
+    model.train()
 
     total_loss = 0.0
 
@@ -117,21 +140,34 @@ for epoch in range(epochs):
         input_tokens = input_tokens.to(device)
         target_tokens = target_tokens.to(device)
 
+        # ------------------------------
         # Forward pass
+        # ------------------------------
+
         logits = model(input_tokens)
 
-        # Calculate next-token prediction loss
+        # ------------------------------
+        # Calculate masked loss
+        # ------------------------------
+
         loss = F.cross_entropy(
             logits.view(-1, vocab_size),
-            target_tokens.view(-1)
+            target_tokens.view(-1),
+            ignore_index=-100
         )
 
+        # ------------------------------
         # Backpropagation
+        # ------------------------------
+
         optimizer.zero_grad()
 
         loss.backward()
 
+        # ------------------------------
         # Update parameters
+        # ------------------------------
+
         optimizer.step()
 
         total_loss += loss.item()
@@ -140,36 +176,20 @@ for epoch in range(epochs):
 
     print(
         f"Epoch {epoch + 1}/{epochs} "
-        f"- Loss: {average_loss:.4f}"
+        f"- SFT Loss: {average_loss:.4f}"
     )
 
 
 # ==========================================
-# Save pretrained model
+# Save SFT checkpoint
 # ==========================================
 
-model_path = "checkpoints/tiny_llm_pretrained.pt"
+output_path = "checkpoints/tiny_llm_sft.pt"
 
 torch.save(
     model.state_dict(),
-    model_path
+    output_path
 )
 
-print(f"\nModel saved to: {model_path}")
-
-
-# ==========================================
-# Save tokenizer
-# ==========================================
-
-tokenizer_path = "checkpoints/tokenizer.pt"
-
-torch.save(
-    {
-        "stoi": tokenizer.stoi,
-        "itos": tokenizer.itos
-    },
-    tokenizer_path
-)
-
-print(f"Tokenizer saved to: {tokenizer_path}")
+print("\nSFT training completed.")
+print("SFT checkpoint saved to:", output_path)
