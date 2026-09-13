@@ -26,9 +26,34 @@ Then open **http://localhost:8000**. The UI shows:
   stats (params, heads, layers, vocab size), a pretrained/instruction-tuned
   toggle, temperature & max-tokens controls, and a token-level preview of how
   the word-level tokenizer split your last message (including `<UNK>` tokens)
+- A full-screen **transformer visualizer** (`/visualize.html`): steps through
+  a generated reply one stage at a time — embeddings, every attention head in
+  every layer as a heatmap, the logits it's choosing between, and the token
+  it samples
 
 The trained checkpoints in `checkpoints/` are included in the repo, so the demo
 works immediately after cloning — no training required.
+
+---
+
+## Deploying so others can use it
+
+GitHub itself only hosts the code — GitHub Pages serves static files and can't
+run the FastAPI/PyTorch process this needs. To give other people a working
+link, deploy it to a host that runs Python. This repo includes a `render.yaml`
+Blueprint for [Render](https://render.com)'s free tier:
+
+1. Push this repo to GitHub (checkpoints included — they're only a few MB).
+2. In the Render dashboard: **New → Blueprint**, pick your repo. Render reads
+   `render.yaml` and configures the build/start commands and health check
+   automatically.
+3. Deploy. Build installs the package (`pip install -e ".[api]"`), then starts
+   it with `tiny-llm-serve`, which binds to Render's `$PORT` automatically.
+4. Once it's live, Render gives you a public `https://<name>.onrender.com`
+   URL — that's the same chat UI and `/visualize.html` you get locally.
+
+Free-tier services spin down after inactivity, so the first request after a
+while will take ~30-60s to wake up; that's normal, not a bug.
 
 ---
 
