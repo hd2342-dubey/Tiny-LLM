@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tiny LLM — transformer visualizer</title>
+<meta name="description" content="Watch, step by step, how a from-scratch GPT-style transformer turns a prompt into a reply: embeddings, per-head attention, logits, and sampling." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="visualize.css" />
+</head>
+<body class="viz-body">
+
+<div class="viz-app">
+
+  <!-- ============================== HEADER ============================== -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="3" y="3" width="26" height="26" rx="4" stroke="currentColor" stroke-width="2"/>
+        <circle cx="11" cy="13" r="2" fill="currentColor"/>
+        <circle cx="21" cy="13" r="2" fill="currentColor"/>
+        <circle cx="16" cy="19" r="2" fill="currentColor"/>
+        <path d="M11 13 L16 19 L21 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1>Transformer Visualizer</h1>
+        <p class="topbar__subtitle">Every step of the forward pass, made visible</p>
+      </div>
+    </div>
+
+    <div class="topbar__status">
+      <span id="statusDot" class="status-dot status-dot--pending"></span>
+      <span id="statusText">connecting…</span>
+      <a href="index.html" class="back-link">← Back to chat</a>
+    </div>
+  </header>
+
+  <div class="viz-layout">
+
+    <!-- ============================== CONTROLS ============================== -->
+    <section class="viz-controls">
+      <form id="vizForm" class="viz-form" autocomplete="off">
+        <input
+          id="vizPromptInput"
+          class="composer__input"
+          type="text"
+          placeholder="Ask something, e.g. “What is a transformer?”"
+          maxlength="300"
+          required
+        />
+        <button id="vizRunButton" class="composer__send" type="submit">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+            <path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+          <span>Run</span>
+        </button>
+      </form>
+
+      <div class="viz-controls__row">
+        <div class="mode-toggle" role="radiogroup" aria-label="Checkpoint">
+          <button type="button" class="mode-toggle__option mode-toggle__option--active" data-mode="sft">Instruction-tuned</button>
+          <button type="button" class="mode-toggle__option" data-mode="pretrained">Pretrained only</button>
+        </div>
+
+        <label class="slider slider--inline">
+          <span>Temperature <output id="vizTemperatureValue">0.0 (greedy)</output></span>
+          <input id="vizTemperatureSlider" type="range" min="0" max="1.2" step="0.1" value="0" />
+        </label>
+
+        <label class="slider slider--inline">
+          <span>New tokens <output id="vizMaxTokensValue">16</output></span>
+          <input id="vizMaxTokensSlider" type="range" min="4" max="40" step="2" value="16" />
+        </label>
+      </div>
+
+      <p class="viz-hint">
+        Capped lower than the chat view — every step here ships a full attention
+        matrix per layer and head, so keeping the sequence short keeps it snappy.
+      </p>
+    </section>
+
+    <!-- ============================== VISUALIZATION ============================== -->
+    <section class="viz-main" id="vizMain" hidden>
+
+      <!-- Pipeline flow: same boxes every step, active one highlighted -->
+      <div class="pipeline-flow" id="pipelineFlow"></div>
+
+      <!-- Stage detail: content changes depending on which box is active -->
+      <div class="stage-detail" id="stageDetail"></div>
+
+      <!-- Playback controls -->
+      <div class="playback">
+        <button id="stepBackBtn" class="playback__btn" type="button" title="Previous stage" aria-label="Previous stage">⏮</button>
+        <button id="playPauseBtn" class="playback__btn playback__btn--primary" type="button" title="Play / pause" aria-label="Play / pause">▶</button>
+        <button id="stepFwdBtn" class="playback__btn" type="button" title="Next stage" aria-label="Next stage">⏭</button>
+
+        <label class="slider slider--speed">
+          <span>Speed</span>
+          <input id="speedSlider" type="range" min="300" max="2200" step="100" value="1000" />
+        </label>
+
+        <span class="playback__label" id="playbackLabel">—</span>
+      </div>
+
+      <!-- Growing context / reply so far -->
+      <div class="context-strip">
+        <h2 class="viz-section-title">Sequence so far</h2>
+        <div id="contextStrip" class="context-strip__tokens"></div>
+      </div>
+
+      <div class="reply-panel">
+        <h2 class="viz-section-title">Reply</h2>
+        <p id="replyText" class="reply-panel__text">—</p>
+      </div>
+
+      <!-- Jump directly to a generated token -->
+      <div class="step-scrubber">
+        <h2 class="viz-section-title">Jump to token</h2>
+        <div id="stepScrubber" class="step-scrubber__steps"></div>
+      </div>
+
+    </section>
+
+    <p id="vizEmptyState" class="viz-empty-state">
+      Type a prompt above and hit Run to watch the forward pass, one stage at a time —
+      embeddings, every attention head in every layer, the logits it's choosing between,
+      and the token it samples.
+    </p>
+
+  </div>
+</div>
+
+<script src="visualize.js"></script>
+</body>
+</html>

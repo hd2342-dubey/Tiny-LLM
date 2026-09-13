@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tiny LLM — a transformer built from scratch</title>
+<meta name="description" content="Chat with a GPT-style causal language model implemented from scratch in PyTorch — tokenizer, embeddings, multi-head attention, and transformer blocks all hand-built." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================== HEADER ============================== -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="3" y="3" width="26" height="26" rx="4" stroke="currentColor" stroke-width="2"/>
+        <circle cx="11" cy="13" r="2" fill="currentColor"/>
+        <circle cx="21" cy="13" r="2" fill="currentColor"/>
+        <circle cx="16" cy="19" r="2" fill="currentColor"/>
+        <path d="M11 13 L16 19 L21 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1>Tiny LLM</h1>
+        <p class="topbar__subtitle">A GPT-style transformer, built from scratch in PyTorch</p>
+      </div>
+    </div>
+
+    <div class="topbar__status">
+      <span id="statusDot" class="status-dot status-dot--pending"></span>
+      <span id="statusText">connecting…</span>
+      <a href="visualize.html" class="visualizer-link">Visualize a forward pass →</a>
+      <button id="internalsToggle" class="internals-toggle" aria-expanded="false">
+        Internals
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ============================== CHAT ============================== -->
+    <main class="chat">
+      <div id="chatStream" class="chat__stream">
+        <div class="msg msg--assistant">
+          <div class="msg__avatar">Σ</div>
+          <div class="msg__bubble">
+            <p>Hi — I'm a tiny causal language model trained from scratch on a handful of AI‑related
+            sentences. Ask me something like <em>"What is a transformer?"</em> and watch how a model
+            with a ~200‑word vocabulary handles it. I'm an educational toy, not a production model —
+            see the panel on the right for the honest details.</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="composerForm" class="composer" autocomplete="off">
+        <input
+          id="promptInput"
+          class="composer__input"
+          type="text"
+          placeholder="Ask about machine learning, transformers, embeddings…"
+          maxlength="300"
+          required
+        />
+        <button id="sendButton" class="composer__send" type="submit">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+            <path d="M4 12L20 4L14 20L11 13L4 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+          <span>Send</span>
+        </button>
+      </form>
+      <p class="composer__hint">Word-level tokenizer · unseen words become <code>&lt;UNK&gt;</code> · greedy by default</p>
+    </main>
+
+    <!-- ============================== INTERNALS RAIL ============================== -->
+    <aside id="internalsRail" class="rail">
+
+      <section class="rail__section">
+        <h2 class="rail__title">Forward pass</h2>
+        <svg class="pipeline" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Model pipeline: tokens, embeddings, four transformer blocks, then logits">
+          <g font-family="IBM Plex Mono, monospace" font-size="11">
+            <rect x="20" y="4" width="200" height="28" rx="5" class="pipe-box pipe-box--io"/>
+            <text x="120" y="22" text-anchor="middle" class="pipe-label">input text</text>
+
+            <line x1="120" y1="32" x2="120" y2="46" class="pipe-line"/>
+
+            <rect x="20" y="46" width="200" height="28" rx="5" class="pipe-box"/>
+            <text x="120" y="64" text-anchor="middle" class="pipe-label">token + position embeddings</text>
+
+            <line x1="120" y1="74" x2="120" y2="88" class="pipe-line"/>
+
+            <g id="pipelineBlocks">
+              <rect x="20" y="88" width="200" height="34" rx="5" class="pipe-box pipe-box--block"/>
+              <text x="120" y="109" text-anchor="middle" class="pipe-label">transformer block × <tspan id="numLayersLabel">4</tspan></text>
+              <text x="120" y="121" text-anchor="middle" class="pipe-sublabel">attn → residual → FFN → residual</text>
+            </g>
+
+            <line x1="120" y1="122" x2="120" y2="136" class="pipe-line"/>
+
+            <rect x="20" y="136" width="200" height="26" rx="5" class="pipe-box"/>
+            <text x="120" y="153" text-anchor="middle" class="pipe-label">final layer norm</text>
+
+            <line x1="120" y1="162" x2="120" y2="176" class="pipe-line"/>
+
+            <rect x="20" y="176" width="200" height="26" rx="5" class="pipe-box"/>
+            <text x="120" y="193" text-anchor="middle" class="pipe-label">LM head → logits</text>
+
+            <line x1="120" y1="202" x2="120" y2="216" class="pipe-line"/>
+
+            <rect x="20" y="216" width="200" height="26" rx="5" class="pipe-box pipe-box--io"/>
+            <text x="120" y="233" text-anchor="middle" class="pipe-label">next token</text>
+          </g>
+        </svg>
+      </section>
+
+      <section class="rail__section">
+        <h2 class="rail__title">Architecture</h2>
+        <dl id="statGrid" class="stat-grid">
+          <div class="stat"><dt>Vocabulary</dt><dd data-stat="vocab_size">—</dd></div>
+          <div class="stat"><dt>Embedding dim</dt><dd data-stat="embedding_dim">—</dd></div>
+          <div class="stat"><dt>Attention heads</dt><dd data-stat="num_heads">—</dd></div>
+          <div class="stat"><dt>Head dim</dt><dd data-stat="head_dim">—</dd></div>
+          <div class="stat"><dt>Transformer blocks</dt><dd data-stat="num_layers">—</dd></div>
+          <div class="stat"><dt>FFN hidden dim</dt><dd data-stat="ff_hidden_dim">—</dd></div>
+          <div class="stat"><dt>Max seq length</dt><dd data-stat="max_sequence_length">—</dd></div>
+          <div class="stat"><dt>Parameters</dt><dd data-stat="num_parameters">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="rail__section">
+        <h2 class="rail__title">Checkpoint</h2>
+        <div class="mode-toggle" role="radiogroup" aria-label="Checkpoint">
+          <button type="button" class="mode-toggle__option mode-toggle__option--active" data-mode="sft">
+            Instruction-tuned
+          </button>
+          <button type="button" class="mode-toggle__option" data-mode="pretrained">
+            Pretrained only
+          </button>
+        </div>
+        <p class="rail__note" id="modeNote">Fine-tuned on 12 Q&amp;A examples with response-only loss masking.</p>
+      </section>
+
+      <section class="rail__section">
+        <h2 class="rail__title">Sampling</h2>
+        <label class="slider">
+          <span>Temperature <output id="temperatureValue">0.0 (greedy)</output></span>
+          <input id="temperatureSlider" type="range" min="0" max="1.2" step="0.1" value="0" />
+        </label>
+        <label class="slider">
+          <span>Max new tokens <output id="maxTokensValue">25</output></span>
+          <input id="maxTokensSlider" type="range" min="5" max="60" step="5" value="25" />
+        </label>
+      </section>
+
+      <section class="rail__section">
+        <h2 class="rail__title">Last prompt tokens</h2>
+        <div id="tokenPreview" class="token-preview">
+          <span class="token-preview__placeholder">Send a message to see how the tokenizer splits it.</span>
+        </div>
+      </section>
+
+      <section class="rail__section rail__section--warning">
+        <h2 class="rail__title">Read this before judging the output</h2>
+        <p>
+          This model has a ~200-word vocabulary and was trained on a handful of sentences.
+          It demonstrates transformer <em>mechanics</em>, not language understanding — expect
+          memorized-sounding answers on trained topics and <code>&lt;UNK&gt;</code> tokens on
+          anything else. Full writeup in the README.
+        </p>
+      </section>
+
+    </aside>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
